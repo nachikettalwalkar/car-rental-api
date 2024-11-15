@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model RentalOffice {
+  id          String        @id @default(uuid())
+  address     String
+  city        String
+  Reservation Reservation[]
+  Vehicle     Vehicle[]
+  VehicleType VehicleType[]
+  Rental      Rental[]
+}
+
+enum VEHICLE_TYPE {
+  SEDAN
+  SUV
+  VAN
+}
+
+model VehicleType {
+  id             String        @id @default(uuid())
+  type           VEHICLE_TYPE  @unique
+  rentalOfficeId String
+  rentalOffice   RentalOffice  @relation(fields: [rentalOfficeId], references: [id])
+  Vehicle        Vehicle[]
+  Reservation    Reservation[]
+}
+
+enum RENTAL_STATUS {
+  RENTED
+  AVAILABLE
+}
+
+enum SUB_TYPE {
+  BASIC
+  MID_RANGE
+  LUXURY
+}
+
+model Vehicle {
+  id             String        @id @default(uuid())
+  licensePlateNo String        @unique
+  type           VehicleType   @relation(fields: [vehicleTypeId], references: [id])
+  vehicleTypeId  String
+  subType        SUB_TYPE      @default(BASIC)
+  image          String
+  rentalStatus   RENTAL_STATUS @default(AVAILABLE)
+  rentalOfficeId String
+  rentalOffice   RentalOffice  @relation(fields: [rentalOfficeId], references: [id])
+  Rental         Rental?
+}
+
+model User {
+  id          String        @id @default(uuid())
+  name        String
+  createdAt   DateTime      @default(now())
+  licenseNo   String        @unique
+  username    String        @unique
+  password    String
+  Reservation Reservation[]
+  Rental      Rental[]
+}
+
+model Reservation {
+  id             String       @id @default(uuid())
+  startDate      DateTime
+  endDate        DateTime
+  price          Decimal
+  userId         String
+  subType        SUB_TYPE     @default(BASIC)
+  user           User         @relation(fields: [userId], references: [id])
+  rentalOfficeId String
+  rentalOffice   RentalOffice @relation(fields: [rentalOfficeId], references: [id])
+  vehicleTypeId  String
+  vehicleType    VehicleType  @relation(fields: [vehicleTypeId], references: [id])
+  Rental         Rental?
+}
+
+model Rental {
+  id                   String       @id @default(uuid())
+  startDate            DateTime
+  endDate              DateTime
+  mileage              Int
+  price                Decimal
+  fuelLevel            Decimal
+  rentalOffice         RentalOffice @relation(fields: [rentalOfficeId], references: [id])
+  rentalOfficeId       String
+  belongsToReservation Reservation  @relation(fields: [reservationId], references: [id])
+  reservationId        String       @unique
+  Vehicle              Vehicle?     @relation(fields: [vehicleId], references: [id])
+  vehicleId            String       @unique
+  user                 User         @relation(fields: [userId], references: [id])
+  userId               String
+
+  @@unique([id, reservationId])
+}
